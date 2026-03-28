@@ -38,9 +38,9 @@ RUN pip install --upgrade pip setuptools wheel
 # --- REPARARE SINTAXĂ PIP AICI ---
 # Am înlocuit #egg= cu sintaxa modernă "name[extra] @ git+url"
 RUN if [ "$private_gpt_VERSION" = "latest" ]; then \
-        pip install "private_gpt[api] @ git+https://github.com/OEvortex/Private_GPT.git"; \
+        pip install "private_gpt[api] @ git+https://github.com/scara78/PrivateGPT.git"; \
     else \
-        pip install "private_gpt[api] @ git+https://github.com/OEvortex/Private_GPT.git@${private_gpt_VERSION}"; \
+        pip install "private_gpt[api] @ git+https://github.com/scara78/PrivateGPT.git@${private_gpt_VERSION}"; \
     fi
 
 # Install additional production dependencies
