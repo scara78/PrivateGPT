@@ -1,13 +1,12 @@
 # =============================================================================
 # Multi-stage Dockerfile for Private_GPT API Server
 # Optimized for production with security, performance, and size considerations
-# No external docker/ directory required - works with pip/git installations
 # =============================================================================
 
 # -----------------------------------------------------------------------------
 # Stage 1: Builder - Install dependencies and build the application
 # -----------------------------------------------------------------------------
-FROM python:3.11-slim as builder
+FROM python:3.11-slim AS builder
 
 # Set build arguments for flexibility
 ARG private_gpt_VERSION=latest
@@ -36,12 +35,12 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Upgrade pip and install build tools
 RUN pip install --upgrade pip setuptools wheel
 
-# Install private_gpt with API dependencies
-# Use specific version if provided, otherwise latest
+# --- REPARARE SINTAXĂ PIP AICI ---
+# Am înlocuit #egg= cu sintaxa modernă "name[extra] @ git+url"
 RUN if [ "$private_gpt_VERSION" = "latest" ]; then \
-        pip install git+https://github.com/OEvortex/Private_GPT.git#egg=private_gpt[api]; \
+        pip install "private_gpt[api] @ git+https://github.com/OEvortex/Private_GPT.git"; \
     else \
-        pip install git+https://github.com/OEvortex/Private_GPT.git@${private_gpt_VERSION}#egg=private_gpt[api]; \
+        pip install "private_gpt[api] @ git+https://github.com/OEvortex/Private_GPT.git@${private_gpt_VERSION}"; \
     fi
 
 # Install additional production dependencies
@@ -54,7 +53,7 @@ RUN pip install \
 # -----------------------------------------------------------------------------
 # Stage 2: Runtime - Create minimal production image
 # -----------------------------------------------------------------------------
-FROM python:3.11-slim as runtime
+FROM python:3.11-slim AS runtime
 
 # Set runtime arguments and labels for metadata
 ARG BUILD_DATE
@@ -105,12 +104,9 @@ ENV PYTHONUNBUFFERED=1 \
 
 # Install only runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    # Required for some Python packages
     libffi8 \
     libssl3 \
-    # Useful for debugging (can be removed for minimal image)
     curl \
-    # Health check utilities
     procps \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
@@ -121,9 +117,6 @@ COPY --from=builder /opt/venv /opt/venv
 # Create application directory and set ownership
 WORKDIR /app
 RUN chown -R private_gpt:private_gpt /app
-
-# Copy application files (if building from source)
-# COPY --chown=private_gpt:private_gpt . /app
 
 # Create directories for logs and data with proper permissions
 RUN mkdir -p /app/logs /app/data && \
@@ -139,6 +132,5 @@ EXPOSE $private_gpt_PORT
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:${private_gpt_PORT:-8000}/monitor/health || exit 1
 
-# Default command - start the private_gpt API server with new auth system
-# Environment variables will be used by the application
+# Default command
 CMD ["python", "-m", "private_gpt.server.server"]
